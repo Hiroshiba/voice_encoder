@@ -1,0 +1,7 @@
+numpy
+torch==1.1.0
+tqdm
+pytest
+pyyaml
+tensorboardX
+git+https://github.com/Hiroshiba/pytorch-trainer@1.1.0
