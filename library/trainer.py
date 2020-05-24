@@ -44,7 +44,7 @@ def create_trainer(
             repeat=for_train,
             shuffle=for_train,
             n_processes=config.train.num_processes,
-            dataset_timeout=60,
+            dataset_timeout=60 * 15,
         )
 
     datasets = create_dataset(config.dataset)
