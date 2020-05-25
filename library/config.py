@@ -39,7 +39,7 @@ class TrainConfig:
 @dataclass
 class ProjectConfig:
     name: str
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
