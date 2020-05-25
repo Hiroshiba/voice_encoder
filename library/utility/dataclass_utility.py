@@ -1,9 +1,9 @@
 import dataclasses
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
-def convert_to_dict(data):
+def convert_to_dict(data) -> Dict[str, Any]:
     if dataclasses.is_dataclass(data):
         data = dataclasses.asdict(data)
     for key, val in data.items():
