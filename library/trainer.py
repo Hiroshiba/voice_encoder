@@ -85,7 +85,7 @@ def create_trainer(
     ext = extensions.Evaluator(train_test_iter, model, device=device)
     trainer.extend(ext, name='train', trigger=trigger_log)
 
-    ext = extensions.snapshot_object(networks.predictor, filename='predictor_{.updater.iteration}.npz')
+    ext = extensions.snapshot_object(networks.predictor, filename='predictor_{.updater.iteration}.pth')
     trainer.extend(ext, trigger=trigger_snapshot)
 
     trainer.extend(extensions.FailOnNonNumber(), trigger=trigger_log)
