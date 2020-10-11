@@ -27,19 +27,15 @@ def accuracy(output: Tensor, target: Tensor):
 
 
 class Model(nn.Module):
-    def __init__(
-            self,
-            model_config: ModelConfig,
-            networks: Networks
-    ) -> None:
+    def __init__(self, model_config: ModelConfig, networks: Networks) -> None:
         super().__init__()
         self.model_config = model_config
         self.predictor = networks.predictor
 
     def __call__(
-            self,
-            input: Tensor,
-            target: Tensor,
+        self,
+        input: Tensor,
+        target: Tensor,
     ):
         feature = self.predictor(input)
         output = self.tail(feature, target)

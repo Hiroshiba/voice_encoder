@@ -10,13 +10,13 @@ from library.network.predictor import Predictor, create_predictor
 
 class Generator(object):
     def __init__(
-            self,
-            config: Config,
-            predictor: Union[Predictor, Path],
-            use_gpu: bool,
+        self,
+        config: Config,
+        predictor: Union[Predictor, Path],
+        use_gpu: bool,
     ) -> None:
         self.config = config
-        self.device = torch.device('cuda') if use_gpu else torch.device('cpu')
+        self.device = torch.device("cuda") if use_gpu else torch.device("cpu")
 
         if isinstance(predictor, Path):
             state_dict = torch.load(predictor)
@@ -25,8 +25,8 @@ class Generator(object):
         self.predictor = predictor.eval().to(self.device)
 
     def generate(
-            self,
-            input: Union[numpy.ndarray, torch.Tensor],
+        self,
+        input: Union[numpy.ndarray, torch.Tensor],
     ):
         if isinstance(input, numpy.ndarray):
             input = torch.from_numpy(input)

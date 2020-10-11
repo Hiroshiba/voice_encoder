@@ -1,21 +1,15 @@
 import torch.nn.functional as F
-from torch import nn, Tensor
-
 from library.config import NetworkConfig
+from torch import Tensor, nn
 
 
 class Predictor(nn.Module):
-    def __init__(
-            self,
-    ):
+    def __init__(self):
         super().__init__()
 
-    def forward(
-            self,
-    ):
+    def forward(self):
         pass
 
 
 def create_predictor(config: NetworkConfig):
-    return Predictor(
-    )
+    return Predictor()

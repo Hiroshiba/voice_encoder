@@ -18,22 +18,22 @@ from library.utility.tensorboard_extension import TensorboardReport
 
 
 def create_trainer(
-        config_dict: Dict[str, Any],
-        output: Path,
+    config_dict: Dict[str, Any],
+    output: Path,
 ):
     # config
     config = Config.from_dict(config_dict)
     config.add_git_info()
 
     output.mkdir(parents=True)
-    with (output / 'config.yaml').open(mode='w') as f:
+    with (output / "config.yaml").open(mode="w") as f:
         yaml.safe_dump(config.to_dict(), f)
 
     # model
     networks = create_network(config.network)
     model = Model(model_config=config.model, networks=networks)
 
-    device = torch.device('cuda')
+    device = torch.device("cuda")
     model.to(device)
 
     # dataset
@@ -48,19 +48,19 @@ def create_trainer(
         )
 
     datasets = create_dataset(config.dataset)
-    train_iter = _create_iterator(datasets['train'], for_train=True)
-    test_iter = _create_iterator(datasets['test'], for_train=False)
-    train_test_iter = _create_iterator(datasets['train_test'], for_train=False)
+    train_iter = _create_iterator(datasets["train"], for_train=True)
+    test_iter = _create_iterator(datasets["test"], for_train=False)
+    train_test_iter = _create_iterator(datasets["train_test"], for_train=False)
 
-    warnings.simplefilter('error', MultiprocessIterator.TimeoutWarning)
+    warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
     # optimizer
     cp: Dict[str, Any] = copy(config.train.optimizer)
-    n = cp.pop('name').lower()
+    n = cp.pop("name").lower()
 
-    if n == 'adam':
+    if n == "adam":
         optimizer = optim.Adam(model.parameters(), **cp)
-    elif n == 'sgd':
+    elif n == "sgd":
         optimizer = optim.SGD(model.parameters(), **cp)
     else:
         raise ValueError(n)
@@ -74,28 +74,37 @@ def create_trainer(
     )
 
     # trainer
-    trigger_log = (config.train.log_iteration, 'iteration')
-    trigger_snapshot = (config.train.snapshot_iteration, 'iteration')
-    trigger_stop = (config.train.stop_iteration, 'iteration') if config.train.stop_iteration is not None else None
+    trigger_log = (config.train.log_iteration, "iteration")
+    trigger_snapshot = (config.train.snapshot_iteration, "iteration")
+    trigger_stop = (
+        (config.train.stop_iteration, "iteration")
+        if config.train.stop_iteration is not None
+        else None
+    )
 
     trainer = Trainer(updater, stop_trigger=trigger_stop, out=output)
 
     ext = extensions.Evaluator(test_iter, model, device=device)
-    trainer.extend(ext, name='test', trigger=trigger_log)
+    trainer.extend(ext, name="test", trigger=trigger_log)
     ext = extensions.Evaluator(train_test_iter, model, device=device)
-    trainer.extend(ext, name='train', trigger=trigger_log)
+    trainer.extend(ext, name="train", trigger=trigger_log)
 
-    ext = extensions.snapshot_object(networks.predictor, filename='predictor_{.updater.iteration}.pth')
+    ext = extensions.snapshot_object(
+        networks.predictor, filename="predictor_{.updater.iteration}.pth"
+    )
     trainer.extend(ext, trigger=trigger_snapshot)
 
     trainer.extend(extensions.FailOnNonNumber(), trigger=trigger_log)
     trainer.extend(extensions.LogReport(trigger=trigger_log))
-    trainer.extend(extensions.PrintReport(['iteration', 'main/loss', 'test/main/loss']), trigger=trigger_log)
+    trainer.extend(
+        extensions.PrintReport(["iteration", "main/loss", "test/main/loss"]),
+        trigger=trigger_log,
+    )
 
     ext = TensorboardReport(writer=SummaryWriter(Path(output)))
     trainer.extend(ext, trigger=trigger_log)
 
-    (output / 'struct.txt').write_text(repr(model))
+    (output / "struct.txt").write_text(repr(model))
 
     if trigger_stop is not None:
         trainer.extend(extensions.ProgressBar(trigger_stop))

@@ -18,8 +18,8 @@ class DatasetInputData:
 
 class InputTargetDataset(Dataset):
     def __init__(
-            self,
-            datas: Sequence[DatasetInputData],
+        self,
+        datas: Sequence[DatasetInputData],
     ):
         self.datas = datas
 
@@ -31,10 +31,12 @@ class InputTargetDataset(Dataset):
         input = numpy.load(str(data.input_path), allow_pickle=True)
         target = numpy.load(str(data.target_path), allow_pickle=True)
 
-        return default_convert(dict(
-            input=input,
-            target=target,
-        ))
+        return default_convert(
+            dict(
+                input=input,
+                target=target,
+            )
+        )
 
 
 def create_dataset(config: DatasetConfig):
@@ -55,8 +57,8 @@ def create_dataset(config: DatasetConfig):
     if config.seed is not None:
         numpy.random.RandomState(config.seed).shuffle(inputs)
 
-    tests, trains = inputs[:config.num_test], inputs[config.num_test:]
-    train_tests = trains[:config.num_test]
+    tests, trains = inputs[: config.num_test], inputs[config.num_test :]
+    train_tests = trains[: config.num_test]
 
     def dataset_wrapper(datas, is_test: bool):
         dataset = InputTargetDataset(
@@ -67,7 +69,7 @@ def create_dataset(config: DatasetConfig):
         return dataset
 
     return {
-        'train': dataset_wrapper(trains, is_test=False),
-        'test': dataset_wrapper(tests, is_test=True),
-        'train_test': dataset_wrapper(train_tests, is_test=True),
+        "train": dataset_wrapper(trains, is_test=False),
+        "test": dataset_wrapper(tests, is_test=True),
+        "train_test": dataset_wrapper(train_tests, is_test=True),
     }

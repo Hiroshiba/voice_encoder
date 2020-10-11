@@ -10,7 +10,7 @@ from library.config import Config
 
 @pytest.fixture()
 def train_config_path():
-    return get_data_directory() / 'train_config.yaml'
+    return get_data_directory() / "train_config.yaml"
 
 
 def test_from_dict(train_config_path: Path):

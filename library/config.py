@@ -31,9 +31,11 @@ class TrainConfig:
     snapshot_iteration: int
     stop_iteration: int
     num_processes: Optional[int] = None
-    optimizer: Dict[str, Any] = field(default_factory=dict(
-        name='Adam',
-    ))
+    optimizer: Dict[str, Any] = field(
+        default_factory=dict(
+            name="Adam",
+        )
+    )
 
 
 @dataclass
@@ -51,7 +53,7 @@ class Config:
     project: ProjectConfig
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> 'Config':
+    def from_dict(cls, d: Dict[str, Any]) -> "Config":
         backward_compatible(d)
         return dataclass_utility.convert_from_dict(cls, d)
 
@@ -59,8 +61,8 @@ class Config:
         return dataclass_utility.convert_to_dict(self)
 
     def add_git_info(self):
-        self.project.tags['git-commit-id'] = get_commit_id()
-        self.project.tags['git-branch-name'] = get_branch_name()
+        self.project.tags["git-commit-id"] = get_commit_id()
+        self.project.tags["git-branch-name"] = get_branch_name()
 
 
 def backward_compatible(d: Dict[str, Any]):
