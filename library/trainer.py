@@ -6,7 +6,7 @@ from typing import Any, Dict
 import torch
 import yaml
 from pytorch_trainer.iterators import MultiprocessIterator
-from pytorch_trainer.training import extensions, Trainer
+from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
 from tensorboardX import SummaryWriter
 from torch import optim
@@ -40,7 +40,7 @@ def create_trainer(
     def _create_iterator(dataset, for_train: bool):
         return MultiprocessIterator(
             dataset,
-            config.train.batchsize,
+            config.train.batch_size,
             repeat=for_train,
             shuffle=for_train,
             n_processes=config.train.num_processes,
@@ -50,7 +50,7 @@ def create_trainer(
     datasets = create_dataset(config.dataset)
     train_iter = _create_iterator(datasets["train"], for_train=True)
     test_iter = _create_iterator(datasets["test"], for_train=False)
-    train_test_iter = _create_iterator(datasets["train_test"], for_train=False)
+    eval_iter = _create_iterator(datasets["eval"], for_train=False)
 
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
@@ -86,8 +86,6 @@ def create_trainer(
 
     ext = extensions.Evaluator(test_iter, model, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
-    ext = extensions.Evaluator(train_test_iter, model, device=device)
-    trainer.extend(ext, name="train", trigger=trigger_log)
 
     ext = extensions.snapshot_object(
         networks.predictor, filename="predictor_{.updater.iteration}.pth"

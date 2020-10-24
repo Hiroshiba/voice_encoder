@@ -1,6 +1,5 @@
 import argparse
 import re
-from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -57,7 +56,6 @@ def generate(
     )
 
     dataset = create_dataset(config.dataset)["train"]
-    features_dict = defaultdict(list)
     for data in tqdm(dataset, desc="generate"):
         target = data["target"]
         output = generator.generate(data["input"])

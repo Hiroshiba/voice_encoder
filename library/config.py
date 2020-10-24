@@ -2,15 +2,15 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from library.utility import dataclass_utility
-from library.utility.git_utility import get_commit_id, get_branch_name
+from library.utility.git_utility import get_branch_name, get_commit_id
 
 
 @dataclass
 class DatasetConfig:
     input_glob: str
     target_glob: str
-    num_test: int
-    num_times_test: int = 1
+    test_num: int
+    eval_times_num: int = 1
     seed: int = 0
 
 
@@ -26,7 +26,7 @@ class ModelConfig:
 
 @dataclass
 class TrainConfig:
-    batchsize: int
+    batch_size: int
     log_iteration: int
     snapshot_iteration: int
     stop_iteration: int

@@ -1,7 +1,7 @@
 dataset:
   input_glob: "/path/to/input-npy/*.npy"
   target_glob: "/path/to/target-npy/*.npy"
-  num_test: 100
+  test_num: 100
   seed: 0
 
 network: {}
@@ -9,7 +9,7 @@ network: {}
 model: {}
 
 train:
-  batchsize: 100
+  batch_size: 100
   log_iteration: 1000
   snapshot_iteration: 100000
   stop_iteration: 100000

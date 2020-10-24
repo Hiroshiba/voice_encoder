@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Sequence
 
 import numpy
-from torch.utils.data.dataset import Dataset, ConcatDataset
+from torch.utils.data.dataset import ConcatDataset, Dataset
 
 from library.config import DatasetConfig
 from library.utility.dataset_utility import default_convert
@@ -57,19 +57,19 @@ def create_dataset(config: DatasetConfig):
     if config.seed is not None:
         numpy.random.RandomState(config.seed).shuffle(inputs)
 
-    tests, trains = inputs[: config.num_test], inputs[config.num_test :]
-    train_tests = trains[: config.num_test]
+    tests, trains = inputs[: config.test_num], inputs[config.test_num :]
+    train_tests = trains[: config.test_num]
 
-    def dataset_wrapper(datas, is_test: bool):
+    def dataset_wrapper(datas, is_eval: bool):
         dataset = InputTargetDataset(
             datas=datas,
         )
-        if is_test:
-            dataset = ConcatDataset([dataset] * config.num_times_test)
+        if is_eval:
+            dataset = ConcatDataset([dataset] * config.eval_times_num)
         return dataset
 
     return {
-        "train": dataset_wrapper(trains, is_test=False),
-        "test": dataset_wrapper(tests, is_test=True),
-        "train_test": dataset_wrapper(train_tests, is_test=True),
+        "train": dataset_wrapper(trains, is_eval=False),
+        "test": dataset_wrapper(tests, is_eval=False),
+        "eval": dataset_wrapper(tests, is_eval=True),
     }
