@@ -1,5 +1,5 @@
 import torch.nn.functional as F
-from library.config import NetworkConfig
+from voice_encoder.config import NetworkConfig
 from torch import Tensor, nn
 
 

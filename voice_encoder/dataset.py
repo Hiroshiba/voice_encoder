@@ -6,8 +6,8 @@ from typing import Sequence
 import numpy
 from torch.utils.data.dataset import ConcatDataset, Dataset
 
-from library.config import DatasetConfig
-from library.utility.dataset_utility import default_convert
+from voice_encoder.config import DatasetConfig
+from voice_encoder.utility.dataset_utility import default_convert
 
 
 @dataclass

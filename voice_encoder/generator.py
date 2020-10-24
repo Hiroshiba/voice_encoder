@@ -4,8 +4,8 @@ from typing import Union
 import numpy
 import torch
 
-from library.config import Config
-from library.network.predictor import Predictor, create_predictor
+from voice_encoder.config import Config
+from voice_encoder.network.predictor import Predictor, create_predictor
 
 
 class Generator(object):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from library.trainer import create_trainer
+from voice_encoder.trainer import create_trainer
 
 
 def train(

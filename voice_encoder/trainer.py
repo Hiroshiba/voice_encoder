@@ -11,10 +11,10 @@ from pytorch_trainer.training.updaters import StandardUpdater
 from tensorboardX import SummaryWriter
 from torch import optim
 
-from library.config import Config
-from library.dataset import create_dataset
-from library.model import Model, create_network
-from library.utility.tensorboard_extension import TensorboardReport
+from voice_encoder.config import Config
+from voice_encoder.dataset import create_dataset
+from voice_encoder.model import Model, create_network
+from voice_encoder.utility.tensorboard_extension import TensorboardReport
 
 
 def create_trainer(

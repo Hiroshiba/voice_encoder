@@ -5,8 +5,8 @@ from pytorch_trainer import report
 from torch import nn, Tensor
 from torch.nn.functional import cross_entropy
 
-from library.config import ModelConfig, NetworkConfig
-from library.network.predictor import create_predictor, Predictor
+from voice_encoder.config import ModelConfig, NetworkConfig
+from voice_encoder.network.predictor import create_predictor, Predictor
 
 
 class Networks(NamedTuple):

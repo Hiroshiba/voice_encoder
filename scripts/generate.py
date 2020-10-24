@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from library.config import Config
-from library.dataset import create_dataset
-from library.generator import Generator
+from voice_encoder.config import Config
+from voice_encoder.dataset import create_dataset
+from voice_encoder.generator import Generator
 from tqdm import tqdm
 from utility.save_arguments import save_arguments
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from library.config import Config
+from voice_encoder.config import Config
 from yaml import SafeLoader
 
 from tests.utility import get_data_directory
