@@ -15,7 +15,7 @@ from voice_encoder.network.speaker_network import SpeakerNetwork
 @dataclass
 class Networks:
     predictor: Predictor
-    voiced_network: AdaCos
+    voiced_network: nn.Linear
     f0_network: nn.Module
     phoneme_network: AdaCos
     speaker_network: nn.Module
@@ -29,9 +29,9 @@ def create_network(config: NetworkConfig):
     )
     return Networks(
         predictor=create_predictor(config),
-        voiced_network=AdaCos(
-            feature_size=config.voiced_feature_size,
-            class_size=2,
+        voiced_network=nn.Linear(
+            in_features=config.voiced_feature_size,
+            out_features=2,
         ),
         f0_network=F0Network(
             input_size=config.f0_feature_size,
@@ -91,7 +91,7 @@ class Model(nn.Module):
             features["phoneme"].transpose(1, 2).reshape(batch_size * length, -1)
         )
 
-        voiced_output = self.voiced_network(voiced_feature, voiced)
+        voiced_output = self.voiced_network(voiced_feature)
         f0_output = self.f0_network(x=f0_feature, speaker=speaker)
         phoneme_output = self.phoneme_network(phoneme_feature, phoneme)
         speaker_output = self.speaker_network(feature.detach())
