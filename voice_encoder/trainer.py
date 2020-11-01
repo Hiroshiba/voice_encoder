@@ -8,13 +8,16 @@ import yaml
 from pytorch_trainer.iterators import MultiprocessIterator
 from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
+from ranger import Ranger
 from tensorboardX import SummaryWriter
 from torch import optim
+from torch.optim.optimizer import Optimizer
 
 from voice_encoder.config import Config
 from voice_encoder.dataset import create_dataset
 from voice_encoder.model import Model, create_network
-from voice_encoder.utility.tensorboard_extension import TensorboardReport
+from voice_encoder.utility.pytorch_utility import init_orthogonal
+from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
 
 
 def create_trainer(
@@ -31,7 +34,8 @@ def create_trainer(
 
     # model
     networks = create_network(config.network)
-    model = Model(model_config=config.model, networks=networks)
+    model = Model(config=config.model, networks=networks)
+    init_orthogonal(model)
 
     device = torch.device("cuda")
     model.to(device)
@@ -50,7 +54,7 @@ def create_trainer(
     datasets = create_dataset(config.dataset)
     train_iter = _create_iterator(datasets["train"], for_train=True)
     test_iter = _create_iterator(datasets["test"], for_train=False)
-    eval_iter = _create_iterator(datasets["eval"], for_train=False)
+    # eval_iter = _create_iterator(datasets["eval"], for_train=False)
 
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
@@ -58,10 +62,13 @@ def create_trainer(
     cp: Dict[str, Any] = copy(config.train.optimizer)
     n = cp.pop("name").lower()
 
+    optimizer: Optimizer
     if n == "adam":
         optimizer = optim.Adam(model.parameters(), **cp)
     elif n == "sgd":
         optimizer = optim.SGD(model.parameters(), **cp)
+    elif n == "ranger":
+        optimizer = Ranger(model.parameters(), **cp)
     else:
         raise ValueError(n)
 
@@ -101,6 +108,15 @@ def create_trainer(
 
     ext = TensorboardReport(writer=SummaryWriter(Path(output)))
     trainer.extend(ext, trigger=trigger_log)
+
+    if config.project.category is not None:
+        ext = WandbReport(
+            config_dict=config.to_dict(),
+            project_category=config.project.category,
+            project_name=config.project.name,
+            output_dir=output.joinpath("wandb"),
+        )
+        trainer.extend(ext, trigger=trigger_log)
 
     (output / "struct.txt").write_text(repr(model))
 

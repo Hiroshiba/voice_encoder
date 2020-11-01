@@ -1,12 +1,29 @@
 dataset:
-  input_glob: "/path/to/input-npy/*.npy"
-  target_glob: "/path/to/target-npy/*.npy"
-  test_num: 100
-  seed: 0
+  wave_glob: "/path/to/wave"
+  silence_glob: "/path/to/silence"
+  f0_glob: "/path/to/f0"
+  phoneme_glob: "/path/to/phoneme"
+  speaker_dict_path: "/path/to/speaker_dict"
+  speaker_size: 100
+  sampling_length: 2400
+  min_not_silence_length: 1200
+  evaluate_times: 10
+  num_test: 50
 
-network: {}
+network:
+  hidden_size_list: [256, 192, 128, 64, 64]
+  scale_list: [5, 4, 3, 2, 2]
+  voiced_feature_size: 4
+  f0_feature_size: 8
+  phoneme_feature_size: 16
+  phoneme_class_size: 40
+  speaker_size: 100
+  speaker_embedding_size: 8
 
-model: {}
+model:
+  voiced_loss_weight: 1
+  f0_loss_weight: 1
+  phoneme_loss_weight: 1
 
 train:
   batch_size: 100
@@ -14,8 +31,9 @@ train:
   snapshot_iteration: 100000
   stop_iteration: 100000
   optimizer:
-    name: "adam"
+    name: "ranger"
     lr: 0.001
 
 project:
   name: null
+  category: "voice_encoder"

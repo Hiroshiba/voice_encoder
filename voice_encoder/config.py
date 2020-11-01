@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from voice_encoder.utility import dataclass_utility
 from voice_encoder.utility.git_utility import get_branch_name, get_commit_id
@@ -7,21 +8,37 @@ from voice_encoder.utility.git_utility import get_branch_name, get_commit_id
 
 @dataclass
 class DatasetConfig:
-    input_glob: str
-    target_glob: str
-    test_num: int
-    eval_times_num: int = 1
+    wave_glob: str
+    silence_glob: str
+    f0_glob: str
+    phoneme_glob: str
+    speaker_dict_path: Path
+    speaker_size: int
+    sampling_length: int
+    min_not_silence_length: int
+    evaluate_times: int
+    num_test: int
+    num_train: Optional[int] = None
     seed: int = 0
 
 
 @dataclass
 class NetworkConfig:
-    pass
+    hidden_size_list: List[int]
+    scale_list: List[int]
+    voiced_feature_size: int
+    f0_feature_size: int
+    phoneme_feature_size: int
+    phoneme_class_size: int
+    speaker_size: int
+    speaker_embedding_size: int
 
 
 @dataclass
 class ModelConfig:
-    pass
+    voiced_loss_weight: float
+    f0_loss_weight: float
+    phoneme_loss_weight: float
 
 
 @dataclass
@@ -31,17 +48,14 @@ class TrainConfig:
     snapshot_iteration: int
     stop_iteration: int
     num_processes: Optional[int] = None
-    optimizer: Dict[str, Any] = field(
-        default_factory=dict(
-            name="Adam",
-        )
-    )
+    optimizer: Dict[str, Any] = field(default_factory=dict(name="Adam"))
 
 
 @dataclass
 class ProjectConfig:
     name: str
     tags: Dict[str, Any] = field(default_factory=dict)
+    category: Optional[str] = None
 
 
 @dataclass

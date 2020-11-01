@@ -3,12 +3,15 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import numpy
 import yaml
-from voice_encoder.config import Config
-from voice_encoder.dataset import create_dataset
-from voice_encoder.generator import Generator
+from more_itertools import chunked
+from pytorch_trainer.dataset.convert import concat_examples
 from tqdm import tqdm
 from utility.save_arguments import save_arguments
+from voice_encoder.config import Config
+from voice_encoder.dataset import SpeakerWavesDataset, WavesDataset, create_dataset
+from voice_encoder.generator import Generator
 
 
 def _extract_number(f):
@@ -35,6 +38,8 @@ def generate(
     model_iteration: Optional[int],
     model_config: Optional[Path],
     output_dir: Path,
+    batch_size: Optional[int],
+    num_test: int,
     use_gpu: bool,
 ):
     if model_config is None:
@@ -55,10 +60,27 @@ def generate(
         use_gpu=use_gpu,
     )
 
-    dataset = create_dataset(config.dataset)["train"]
-    for data in tqdm(dataset, desc="generate"):
-        target = data["target"]
-        output = generator.generate(data["input"])
+    dataset = create_dataset(config.dataset)["test"]
+
+    if batch_size is None:
+        batch_size = config.train.batch_size
+
+    if isinstance(dataset, SpeakerWavesDataset):
+        wave_paths = [data.path_wave for data in dataset.wave_dataset.inputs[:num_test]]
+    elif isinstance(dataset, WavesDataset):
+        wave_paths = [data.path_wave for data in dataset.inputs[:num_test]]
+    else:
+        raise Exception()
+
+    for data, wave_path in tqdm(
+        zip(chunked(dataset, batch_size), chunked(wave_paths, batch_size)),
+        desc="generate",
+    ):
+        data = concat_examples(data)
+        output = generator.generate(wave=data["wave"])
+
+        for feature, p in zip(output, wave_path):
+            numpy.save(output_dir / (p.stem + ".npy"), feature)
 
 
 if __name__ == "__main__":
