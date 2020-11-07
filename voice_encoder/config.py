@@ -19,6 +19,12 @@ class DatasetConfig:
     evaluate_times: int
     num_test: int
     num_train: Optional[int] = None
+    valid_wave_glob: Optional[str] = None
+    valid_silence_glob: Optional[str] = None
+    valid_f0_glob: Optional[str] = None
+    valid_phoneme_glob: Optional[str] = None
+    valid_times: Optional[int] = None
+    num_valid: Optional[int] = None
     seed: int = 0
 
 

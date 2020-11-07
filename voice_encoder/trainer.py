@@ -54,7 +54,10 @@ def create_trainer(
     datasets = create_dataset(config.dataset)
     train_iter = _create_iterator(datasets["train"], for_train=True)
     test_iter = _create_iterator(datasets["test"], for_train=False)
-    # eval_iter = _create_iterator(datasets["eval"], for_train=False)
+
+    valid_iter = None
+    if datasets["valid"] is not None:
+        valid_iter = _create_iterator(datasets["valid"], for_train=False)
 
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 
@@ -93,6 +96,10 @@ def create_trainer(
 
     ext = extensions.Evaluator(test_iter, model, device=device)
     trainer.extend(ext, name="test", trigger=trigger_log)
+
+    if valid_iter is not None:
+        ext = extensions.Evaluator(valid_iter, model, device=device)
+        trainer.extend(ext, name="valid", trigger=trigger_snapshot)
 
     ext = extensions.snapshot_object(
         networks.predictor, filename="predictor_{.updater.iteration}.pth"

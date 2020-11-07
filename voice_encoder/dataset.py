@@ -224,8 +224,54 @@ def create_dataset(config: DatasetConfig):
 
         return dataset
 
+    valid_dataset = (
+        create_validation_dataset(config) if config.num_valid is not None else None
+    )
     return dict(
         train=make_dataset(trains),
         test=make_dataset(tests),
         eval=make_dataset(tests, for_evaluate=True),
+        valid=valid_dataset,
     )
+
+
+def create_validation_dataset(config: DatasetConfig):
+    wave_paths = {Path(p).stem: Path(p) for p in glob.glob(str(config.valid_wave_glob))}
+    fn_list = sorted(wave_paths.keys())
+    assert len(fn_list) > 0
+
+    silence_paths = {
+        Path(p).stem: Path(p) for p in glob.glob(str(config.valid_silence_glob))
+    }
+    assert set(fn_list) == set(silence_paths.keys())
+
+    f0_paths = {Path(p).stem: Path(p) for p in glob.glob(str(config.valid_f0_glob))}
+    assert set(fn_list) == set(f0_paths.keys())
+
+    phoneme_paths = {
+        Path(p).stem: Path(p) for p in glob.glob(str(config.valid_phoneme_glob))
+    }
+    assert set(fn_list) == set(phoneme_paths.keys())
+
+    numpy.random.RandomState(config.seed).shuffle(fn_list)
+
+    valids = fn_list[: config.num_valid]
+
+    inputs = [
+        LazyInput(
+            path_wave=wave_paths[fn],
+            path_silence=silence_paths[fn],
+            path_f0=f0_paths[fn],
+            path_phoneme=phoneme_paths[fn],
+        )
+        for fn in valids
+    ]
+
+    dataset = WavesDataset(
+        inputs=inputs,
+        sampling_length=config.sampling_length,
+        min_not_silence_length=config.min_not_silence_length,
+    )
+
+    dataset = ConcatDataset([dataset] * config.valid_times)
+    return dataset

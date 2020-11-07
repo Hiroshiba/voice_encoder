@@ -36,4 +36,4 @@ train:
 
 project:
   name: null
-  category: "voice_encoder"
+  category: "test_voice_encoder"

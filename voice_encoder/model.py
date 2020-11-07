@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -71,15 +72,13 @@ class Model(nn.Module):
         wave: Tensor,
         f0: Tensor,
         phoneme: Tensor,
-        speaker: Tensor,
+        speaker: Optional[Tensor] = None,
     ):
         batch_size = wave.shape[0]
         length = f0.shape[1]
 
         voiced = f0 != 0
         long_voiced = voiced.long()
-
-        expanded_speaker = speaker.unsqueeze(1).expand(batch_size, length)
 
         features = self.predictor(wave, return_with_splited=True)
         feature = features["feature"].transpose(1, 2).reshape(batch_size * length, -1)
@@ -92,14 +91,24 @@ class Model(nn.Module):
         )
 
         voiced_output = self.voiced_network(voiced_feature)
-        f0_output = self.f0_network(x=f0_feature, speaker=speaker)
         phoneme_output = self.phoneme_network(phoneme_feature, phoneme)
-        speaker_output = self.speaker_network(feature.detach())
 
         voiced_loss = F.cross_entropy(voiced_output, long_voiced.reshape(-1))
-        f0_loss = F.l1_loss(f0_output[voiced], f0[voiced])
         phoneme_loss = F.cross_entropy(phoneme_output, phoneme.reshape(-1))
-        speaker_loss = F.cross_entropy(speaker_output, expanded_speaker.reshape(-1))
+
+        if speaker is not None:
+            expanded_speaker = speaker.unsqueeze(1).expand(batch_size, length)
+
+            f0_output = self.f0_network(x=f0_feature, speaker=speaker)
+            speaker_output = self.speaker_network(feature.detach())
+
+            f0_loss = F.l1_loss(f0_output[voiced], f0[voiced])
+            speaker_loss = F.cross_entropy(speaker_output, expanded_speaker.reshape(-1))
+            speaker_accuracy = accuracy(speaker_output, expanded_speaker.reshape(-1))
+        else:
+            f0_loss = 0
+            speaker_loss = 0
+            speaker_accuracy = 0
 
         predictor_loss = (
             self.config.voiced_loss_weight * voiced_loss
@@ -118,7 +127,7 @@ class Model(nn.Module):
             speaker_loss=speaker_loss,
             voiced_accuracy=accuracy(voiced_output, long_voiced.reshape(-1)),
             phoneme_accuracy=accuracy(phoneme_output, phoneme.reshape(-1)),
-            speaker_accuracy=accuracy(speaker_output, expanded_speaker.reshape(-1)),
+            speaker_accuracy=speaker_accuracy,
         )
         if not self.training:
             values = {key: (l, batch_size) for key, l in values.items()}  # add weight

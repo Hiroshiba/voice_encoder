@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 import numpy
 import pytest
+import wandb
 import yaml
 from acoustic_feature_extractor.data.sampling_data import SamplingData
 from acoustic_feature_extractor.data.wave import Wave
@@ -102,7 +103,8 @@ def generate_dataset(
     json.dump(speaker_dict, dataset_directory.joinpath("speaker_dict.json").open("w"))
 
 
-def test_train(train_config: Dict[str, Any], dataset_directory: Path):
+@pytest.mark.parametrize("with_valid", [False, True])
+def test_train(train_config: Dict[str, Any], dataset_directory: Path, with_valid: bool):
     generate_dataset(
         dataset_directory=dataset_directory,
         data_num=100,
@@ -124,12 +126,31 @@ def test_train(train_config: Dict[str, Any], dataset_directory: Path):
         "speaker_dict.json"
     )
 
+    if with_valid:
+        train_config["dataset"]["valid_wave_glob"] = str(
+            dataset_directory.joinpath("wave/*.wav")
+        )
+        train_config["dataset"]["valid_silence_glob"] = str(
+            dataset_directory.joinpath("silence/*.npy")
+        )
+        train_config["dataset"]["valid_f0_glob"] = str(
+            dataset_directory.joinpath("f0/*.npy")
+        )
+        train_config["dataset"]["valid_phoneme_glob"] = str(
+            dataset_directory.joinpath("phoneme/*.npy")
+        )
+        train_config["dataset"]["valid_times"] = 10
+        train_config["dataset"]["num_valid"] = 10
+
     train_config["train"]["batch_size"] = 10
     train_config["train"]["log_iteration"] = 100
     train_config["train"]["snapshot_iteration"] = 500
     train_config["train"]["stop_iteration"] = 1000
 
     trainer = create_trainer(
-        config_dict=train_config, output=Path("/tmp/voice_encoder_test_output")
+        config_dict=train_config,
+        output=Path(f"/tmp/voice_encoder_test_output-with_valid={with_valid}"),
     )
     trainer.run()
+
+    wandb.finish()
