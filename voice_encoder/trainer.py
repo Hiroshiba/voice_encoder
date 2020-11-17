@@ -1,3 +1,4 @@
+import dataclasses
 import warnings
 from copy import copy
 from pathlib import Path
@@ -15,7 +16,7 @@ from torch.optim.optimizer import Optimizer
 
 from voice_encoder.config import Config
 from voice_encoder.dataset import create_dataset
-from voice_encoder.model import Model, create_network
+from voice_encoder.model import Model, Networks, create_network
 from voice_encoder.utility.pytorch_utility import init_orthogonal
 from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
 
@@ -101,10 +102,12 @@ def create_trainer(
         ext = extensions.Evaluator(valid_iter, model, device=device)
         trainer.extend(ext, name="valid", trigger=trigger_snapshot)
 
-    ext = extensions.snapshot_object(
-        networks.predictor, filename="predictor_{.updater.iteration}.pth"
-    )
-    trainer.extend(ext, trigger=trigger_snapshot)
+    for field in dataclasses.fields(Networks):
+        ext = extensions.snapshot_object(
+            getattr(networks, field.name),
+            filename=field.name + "_{.updater.iteration}.pth",
+        )
+        trainer.extend(ext, trigger=trigger_snapshot)
 
     trainer.extend(extensions.FailOnNonNumber(), trigger=trigger_log)
     trainer.extend(extensions.LogReport(trigger=trigger_log))

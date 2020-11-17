@@ -34,4 +34,4 @@ class Generator(object):
 
         with torch.no_grad():
             output = self.predictor(wave)
-        return output.numpy()
+        return output.cpu().numpy()

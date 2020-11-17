@@ -37,7 +37,7 @@ class NetworkConfig:
     phoneme_feature_size: int
     phoneme_class_size: int
     speaker_size: int
-    speaker_embedding_size: int
+    speaker_embedding_size: Optional[int]
 
 
 @dataclass

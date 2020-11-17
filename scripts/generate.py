@@ -1,10 +1,14 @@
 import argparse
 import re
+from glob import glob
 from pathlib import Path
 from typing import Optional
 
 import numpy
+import torch
 import yaml
+from acoustic_feature_extractor.data.sampling_data import SamplingData
+from acoustic_feature_extractor.data.wave import Wave
 from more_itertools import chunked
 from pytorch_trainer.dataset.convert import concat_examples
 from tqdm import tqdm
@@ -40,6 +44,7 @@ def generate(
     output_dir: Path,
     batch_size: Optional[int],
     num_test: int,
+    target_glob: Optional[str],
     use_gpu: bool,
 ):
     if model_config is None:
@@ -61,6 +66,7 @@ def generate(
     )
 
     dataset = create_dataset(config.dataset)["test"]
+    scale = numpy.prod(config.network.scale_list)
 
     if batch_size is None:
         batch_size = config.train.batch_size
@@ -72,15 +78,23 @@ def generate(
     else:
         raise Exception()
 
-    for data, wave_path in tqdm(
-        zip(chunked(dataset, batch_size), chunked(wave_paths, batch_size)),
-        desc="generate",
-    ):
-        data = concat_examples(data)
-        output = generator.generate(wave=data["wave"])
+    if target_glob is not None:
+        wave_paths += list(map(Path, glob(target_glob)))
 
-        for feature, p in zip(output, wave_path):
-            numpy.save(output_dir / (p.stem + ".npy"), feature)
+    for wps in tqdm(chunked(wave_paths, batch_size), desc="generate"):
+        waves = [Wave.load(p) for p in wps]
+        arrays = [w.wave for w in waves]
+
+        pad_lengths = [int(numpy.ceil(len(w) / scale) * scale) for w in arrays]
+        arrays = [numpy.r_[w, numpy.zeros(max(pad_lengths) - len(w))] for w in arrays]
+
+        tensors = [torch.from_numpy(array.astype(numpy.float32)) for array in arrays]
+        output = generator.generate(wave=concat_examples(tensors))
+
+        for feature, p, w, l in zip(output, wps, waves, pad_lengths):
+            feature = feature.T[: l // scale]
+            data = SamplingData(array=feature, rate=w.sampling_rate // scale)
+            data.save(output_dir / (p.stem + ".npy"))
 
 
 if __name__ == "__main__":
@@ -89,5 +103,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_iteration", type=int)
     parser.add_argument("--model_config", type=Path)
     parser.add_argument("--output_dir", required=True, type=Path)
+    parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--num_test", type=int, default=10)
+    parser.add_argument("--target_glob")
     parser.add_argument("--use_gpu", action="store_true")
     generate(**vars(parser.parse_args()))
