@@ -23,7 +23,7 @@ def _extract_number(f):
     return int(s[-1]) if s else -1
 
 
-def _get_predictor_model_path(
+def _get_model_path(
     model_dir: Path,
     iteration: int = None,
     prefix: str = "predictor_",
@@ -42,6 +42,7 @@ def generate(
     model_iteration: Optional[int],
     model_config: Optional[Path],
     output_dir: Path,
+    to_f0_scaler: bool,
     batch_size: Optional[int],
     num_test: int,
     target_glob: Optional[str],
@@ -55,13 +56,22 @@ def generate(
 
     config = Config.from_dict(yaml.safe_load(model_config.open()))
 
-    model_path = _get_predictor_model_path(
-        model_dir=model_dir,
-        iteration=model_iteration,
-    )
     generator = Generator(
         config=config,
-        predictor=model_path,
+        predictor=_get_model_path(
+            model_dir=model_dir,
+            iteration=model_iteration,
+            prefix="predictor_",
+        ),
+        f0_network=(
+            None
+            if not to_f0_scaler
+            else _get_model_path(
+                model_dir=model_dir,
+                iteration=model_iteration,
+                prefix="f0_network_",
+            )
+        ),
         use_gpu=use_gpu,
     )
 
@@ -89,7 +99,9 @@ def generate(
         arrays = [numpy.r_[w, numpy.zeros(max(pad_lengths) - len(w))] for w in arrays]
 
         tensors = [torch.from_numpy(array.astype(numpy.float32)) for array in arrays]
-        output = generator.generate(wave=concat_examples(tensors))
+        output = generator.generate(
+            wave=concat_examples(tensors), to_f0_scaler=to_f0_scaler
+        )
 
         for feature, p, w, l in zip(output, wps, waves, pad_lengths):
             feature = feature.T[: l // scale]
@@ -103,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_iteration", type=int)
     parser.add_argument("--model_config", type=Path)
     parser.add_argument("--output_dir", required=True, type=Path)
+    parser.add_argument("--to_f0_scaler", action="store_true")
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--num_test", type=int, default=10)
     parser.add_argument("--target_glob")

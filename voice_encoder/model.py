@@ -8,7 +8,7 @@ from torch import Tensor, nn
 
 from voice_encoder.config import ModelConfig, NetworkConfig
 from voice_encoder.network.ada_cos import AdaCos
-from voice_encoder.network.f0_network import F0Network
+from voice_encoder.network.f0_network import F0Network, create_f0_network
 from voice_encoder.network.predictor import Predictor, create_predictor
 from voice_encoder.network.speaker_network import SpeakerNetwork
 
@@ -17,7 +17,7 @@ from voice_encoder.network.speaker_network import SpeakerNetwork
 class Networks:
     predictor: Predictor
     voiced_network: nn.Linear
-    f0_network: nn.Module
+    f0_network: F0Network
     phoneme_network: AdaCos
     speaker_network: nn.Module
 
@@ -34,11 +34,7 @@ def create_network(config: NetworkConfig):
             in_features=config.voiced_feature_size,
             out_features=2,
         ),
-        f0_network=F0Network(
-            input_size=config.f0_feature_size,
-            speaker_size=config.speaker_size,
-            speaker_embedding_size=config.speaker_embedding_size,
-        ),
+        f0_network=create_f0_network(config),
         phoneme_network=AdaCos(
             feature_size=config.phoneme_feature_size,
             class_size=config.phoneme_class_size,

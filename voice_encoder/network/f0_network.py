@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from torch import Tensor
+from voice_encoder.config import NetworkConfig
 
 
 class F0Network(nn.Module):
@@ -28,3 +29,11 @@ class F0Network(nn.Module):
             speaker = speaker.expand(speaker.shape[0], x.shape[1], speaker.shape[2])
             x = torch.cat((x, speaker), dim=2)
         return self.linear(x).squeeze()
+
+
+def create_f0_network(config: NetworkConfig):
+    return F0Network(
+        input_size=config.f0_feature_size,
+        speaker_size=config.speaker_size,
+        speaker_embedding_size=config.speaker_embedding_size,
+    )
