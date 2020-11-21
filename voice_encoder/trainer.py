@@ -7,7 +7,7 @@ from typing import Any, Dict
 import torch
 import yaml
 from pytorch_trainer.iterators import MultiprocessIterator
-from pytorch_trainer.training import Trainer, extensions
+from pytorch_trainer.training import Trainer, extensions, triggers
 from pytorch_trainer.training.updaters import StandardUpdater
 from ranger import Ranger
 from tensorboardX import SummaryWriter
@@ -29,7 +29,7 @@ def create_trainer(
     config = Config.from_dict(config_dict)
     config.add_git_info()
 
-    output.mkdir(parents=True)
+    output.mkdir(exist_ok=True, parents=True)
     with (output / "config.yaml").open(mode="w") as f:
         yaml.safe_dump(config.to_dict(), f)
 
@@ -106,8 +106,19 @@ def create_trainer(
         ext = extensions.snapshot_object(
             getattr(networks, field.name),
             filename=field.name + "_{.updater.iteration}.pth",
+            n_retains=1,
         )
-        trainer.extend(ext, trigger=trigger_snapshot)
+        trainer.extend(
+            ext,
+            trigger=triggers.MaxValueTrigger(
+                (
+                    "valid/main/phoneme_accuracy"
+                    if valid_iter is not None
+                    else "test/main/phoneme_accuracy"
+                ),
+                trigger=trigger_snapshot,
+            ),
+        )
 
     trainer.extend(extensions.FailOnNonNumber(), trigger=trigger_log)
     trainer.extend(extensions.LogReport(trigger=trigger_log))
@@ -132,5 +143,13 @@ def create_trainer(
 
     if trigger_stop is not None:
         trainer.extend(extensions.ProgressBar(trigger_stop))
+
+    ext = extensions.snapshot_object(
+        trainer,
+        filename="trainer_{.updater.iteration}.pth",
+        n_retains=1,
+        autoload=True,
+    )
+    trainer.extend(ext, trigger=trigger_snapshot)
 
     return trainer
