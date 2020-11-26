@@ -17,7 +17,6 @@ network:
   f0_feature_size: 8
   phoneme_feature_size: 16
   phoneme_class_size: 40
-  phoneme_subscale_size: 5
   speaker_size: 100
 
 model:

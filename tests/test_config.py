@@ -8,25 +8,25 @@ from yaml import SafeLoader
 from tests.utility import get_data_directory
 
 
-@pytest.fixture()
-def train_config_path():
-    return get_data_directory() / "train_config.yaml"
+@pytest.fixture(params=["base_config.yaml", "train_config.yaml"])
+def config_path(request):
+    return get_data_directory().joinpath(request.param)
 
 
-def test_from_dict(train_config_path: Path):
-    with train_config_path.open() as f:
+def test_from_dict(config_path: Path):
+    with config_path.open() as f:
         d = yaml.load(f, SafeLoader)
     Config.from_dict(d)
 
 
-def test_to_dict(train_config_path: Path):
-    with train_config_path.open() as f:
+def test_to_dict(config_path: Path):
+    with config_path.open() as f:
         d = yaml.load(f, SafeLoader)
     Config.from_dict(d).to_dict()
 
 
-def test_equal_base_config_and_reconstructed(train_config_path: Path):
-    with train_config_path.open() as f:
+def test_equal_base_config_and_reconstructed(config_path: Path):
+    with config_path.open() as f:
         d = yaml.load(f, SafeLoader)
     base = Config.from_dict(d)
     base_re = Config.from_dict(base.to_dict())

@@ -7,7 +7,7 @@ from pytorch_trainer import report
 from torch import Tensor, nn
 
 from voice_encoder.config import ModelConfig, NetworkConfig
-from voice_encoder.network.ada_cos import AdaCos
+from voice_encoder.network.ada_cos import AdaCos, SubscaleAdaCos
 from voice_encoder.network.f0_network import F0Network, create_f0_network
 from voice_encoder.network.predictor import Predictor, create_predictor
 from voice_encoder.network.speaker_network import SpeakerNetwork
@@ -18,7 +18,7 @@ class Networks:
     predictor: Predictor
     voiced_network: nn.Linear
     f0_network: F0Network
-    phoneme_network: AdaCos
+    phoneme_network: nn.Module
     speaker_network: nn.Module
 
 
@@ -28,6 +28,18 @@ def create_network(config: NetworkConfig):
         + config.f0_feature_size
         + config.phoneme_feature_size
     )
+    phoneme_network = (
+        AdaCos(
+            feature_size=config.phoneme_feature_size,
+            class_size=config.phoneme_class_size,
+        )
+        if config.phoneme_subscale_size is None
+        else SubscaleAdaCos(
+            feature_size=config.phoneme_feature_size,
+            class_size=config.phoneme_class_size,
+            subscale_size=config.phoneme_subscale_size,
+        )
+    )
     return Networks(
         predictor=create_predictor(config),
         voiced_network=nn.Linear(
@@ -35,10 +47,7 @@ def create_network(config: NetworkConfig):
             out_features=2,
         ),
         f0_network=create_f0_network(config),
-        phoneme_network=AdaCos(
-            feature_size=config.phoneme_feature_size,
-            class_size=config.phoneme_class_size,
-        ),
+        phoneme_network=phoneme_network,
         speaker_network=SpeakerNetwork(
             input_size=feature_size,
             output_size=config.speaker_size,
@@ -87,22 +96,25 @@ class Model(nn.Module):
         )
 
         voiced_output = self.voiced_network(voiced_feature)
-        phoneme_output = self.phoneme_network(phoneme_feature, phoneme)
+        if self.training:
+            phoneme_output = self.phoneme_network(phoneme_feature, phoneme)
+        else:
+            phoneme_output = self.phoneme_network(phoneme_feature)
 
         voiced_loss = F.cross_entropy(voiced_output, long_voiced.reshape(-1))
         phoneme_loss = F.cross_entropy(phoneme_output, phoneme.reshape(-1))
 
+        f0_output = self.f0_network(x=f0_feature)
+        f0_loss = F.l1_loss(f0_output[voiced], f0[voiced])
+
         if speaker is not None:
             expanded_speaker = speaker.unsqueeze(1).expand(batch_size, length)
 
-            f0_output = self.f0_network(x=f0_feature, speaker=speaker)
             speaker_output = self.speaker_network(feature.detach())
 
-            f0_loss = F.l1_loss(f0_output[voiced], f0[voiced])
             speaker_loss = F.cross_entropy(speaker_output, expanded_speaker.reshape(-1))
             speaker_accuracy = accuracy(speaker_output, expanded_speaker.reshape(-1))
         else:
-            f0_loss = 0
             speaker_loss = 0
             speaker_accuracy = 0
 

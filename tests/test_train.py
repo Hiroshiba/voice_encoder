@@ -1,6 +1,8 @@
 import json
+import os
 from collections import defaultdict
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Dict
 
 import numpy
@@ -14,15 +16,17 @@ from yaml import SafeLoader
 
 from tests.utility import get_data_directory
 
+os.environ["WANDB_MODE"] = "dryrun"
+
+
+@pytest.fixture(params=["base_config.yaml", "train_config.yaml"])
+def config_path(request):
+    return get_data_directory().joinpath(request.param)
+
 
 @pytest.fixture()
-def train_config_path():
-    return get_data_directory() / "train_config.yaml"
-
-
-@pytest.fixture()
-def train_config(train_config_path: Path):
-    with train_config_path.open() as f:
+def config(config_path: Path):
+    with config_path.open() as f:
         return yaml.load(f, SafeLoader)
 
 
@@ -104,53 +108,48 @@ def generate_dataset(
 
 
 @pytest.mark.parametrize("with_valid", [False, True])
-def test_train(train_config: Dict[str, Any], dataset_directory: Path, with_valid: bool):
+def test_train(config: Dict[str, Any], dataset_directory: Path, with_valid: bool):
     generate_dataset(
         dataset_directory=dataset_directory,
         data_num=100,
         sampling_rate=24000,
-        local_rate=24000 // numpy.prod(train_config["network"]["scale_list"]),
-        phoneme_size=train_config["network"]["phoneme_class_size"],
-        speaker_size=train_config["dataset"]["speaker_size"],
+        local_rate=24000 // numpy.prod(config["network"]["scale_list"]),
+        phoneme_size=config["network"]["phoneme_class_size"],
+        speaker_size=config["dataset"]["speaker_size"],
     )
 
-    train_config["dataset"]["wave_glob"] = str(dataset_directory.joinpath("wave/*.wav"))
-    train_config["dataset"]["silence_glob"] = str(
-        dataset_directory.joinpath("silence/*.npy")
-    )
-    train_config["dataset"]["f0_glob"] = str(dataset_directory.joinpath("f0/*.npy"))
-    train_config["dataset"]["phoneme_glob"] = str(
-        dataset_directory.joinpath("phoneme/*.npy")
-    )
-    train_config["dataset"]["speaker_dict_path"] = dataset_directory.joinpath(
+    config["dataset"]["wave_glob"] = str(dataset_directory.joinpath("wave/*.wav"))
+    config["dataset"]["silence_glob"] = str(dataset_directory.joinpath("silence/*.npy"))
+    config["dataset"]["f0_glob"] = str(dataset_directory.joinpath("f0/*.npy"))
+    config["dataset"]["phoneme_glob"] = str(dataset_directory.joinpath("phoneme/*.npy"))
+    config["dataset"]["speaker_dict_path"] = dataset_directory.joinpath(
         "speaker_dict.json"
     )
 
     if with_valid:
-        train_config["dataset"]["valid_wave_glob"] = str(
+        config["dataset"]["valid_wave_glob"] = str(
             dataset_directory.joinpath("wave/*.wav")
         )
-        train_config["dataset"]["valid_silence_glob"] = str(
+        config["dataset"]["valid_silence_glob"] = str(
             dataset_directory.joinpath("silence/*.npy")
         )
-        train_config["dataset"]["valid_f0_glob"] = str(
-            dataset_directory.joinpath("f0/*.npy")
-        )
-        train_config["dataset"]["valid_phoneme_glob"] = str(
+        config["dataset"]["valid_f0_glob"] = str(dataset_directory.joinpath("f0/*.npy"))
+        config["dataset"]["valid_phoneme_glob"] = str(
             dataset_directory.joinpath("phoneme/*.npy")
         )
-        train_config["dataset"]["valid_times"] = 10
-        train_config["dataset"]["num_valid"] = 10
+        config["dataset"]["valid_times"] = 10
+        config["dataset"]["num_valid"] = 10
 
-    train_config["train"]["batch_size"] = 10
-    train_config["train"]["log_iteration"] = 100
-    train_config["train"]["snapshot_iteration"] = 500
-    train_config["train"]["stop_iteration"] = 1000
+    config["train"]["batch_size"] = 10
+    config["train"]["log_iteration"] = 100
+    config["train"]["snapshot_iteration"] = 500
+    config["train"]["stop_iteration"] = 1000
 
-    trainer = create_trainer(
-        config_dict=train_config,
-        output=Path(f"/tmp/voice_encoder_test_output-with_valid={with_valid}"),
-    )
-    trainer.run()
+    with TemporaryDirectory() as temp_dir:
+        trainer = create_trainer(
+            config_dict=config,
+            output=Path(temp_dir),
+        )
+        trainer.run()
 
     wandb.finish()

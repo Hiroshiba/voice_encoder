@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,8 +37,8 @@ class NetworkConfig:
     f0_feature_size: int
     phoneme_feature_size: int
     phoneme_class_size: int
+    phoneme_subscale_size: Optional[int]
     speaker_size: int
-    speaker_embedding_size: Optional[int]
 
 
 @dataclass
@@ -86,4 +87,10 @@ class Config:
 
 
 def backward_compatible(d: Dict[str, Any]):
-    pass
+    if "speaker_embedding_size" in d["network"]:
+        v = d["network"].pop("speaker_embedding_size")
+        if v is not None:
+            warnings.warn(f'duplicated d["network"]["speaker_embedding_size"]={v}')
+
+    if "phoneme_subscale_size" not in d["network"]:
+        d["network"]["phoneme_subscale_size"] = None

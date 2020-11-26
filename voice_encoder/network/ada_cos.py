@@ -41,3 +41,18 @@ class AdaCos(nn.Module):
         output = self.s * logits
 
         return output
+
+
+class SubscaleAdaCos(nn.Module):
+    def __init__(self, feature_size: int, class_size: int, subscale_size: int):
+        super().__init__()
+        self.adacos_list = nn.ModuleList(
+            [
+                AdaCos(feature_size=feature_size, class_size=class_size)
+                for _ in range(subscale_size)
+            ]
+        )
+
+    def forward(self, x: torch.Tensor, label=None):
+        h = [adacos(x, label) for adacos in self.adacos_list]
+        return torch.max(torch.stack(h, dim=2), dim=2)[0]

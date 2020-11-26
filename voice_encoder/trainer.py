@@ -106,7 +106,7 @@ def create_trainer(
         ext = extensions.snapshot_object(
             getattr(networks, field.name),
             filename=field.name + "_{.updater.iteration}.pth",
-            n_retains=1,
+            n_retains=5,
         )
         trainer.extend(
             ext,
