@@ -7,6 +7,7 @@ from typing import Dict, List, Union
 import numpy
 from acoustic_feature_extractor.data.sampling_data import SamplingData
 from acoustic_feature_extractor.data.wave import Wave
+from colorednoise import powerlaw_psd_gaussian
 from torch.utils.data import ConcatDataset, Dataset
 
 from voice_encoder.config import DatasetConfig
@@ -37,14 +38,54 @@ class LazyInput:
         )
 
 
+def mic_augment(wave: numpy.ndarray, sampling_rate: int):
+    wave = wave.astype(numpy.float64)
+
+    def make_noise():
+        beta = numpy.random.uniform(-3, 3)
+        noise = powerlaw_psd_gaussian(
+            beta,
+            size=len(wave),
+            fmin=20 / sampling_rate,
+        )
+        noise /= 3  # 99.73%が-1~1に入る
+
+        snr = numpy.random.uniform(5, 30)
+        noise *= 1 / (10 ** (snr / 20) - 1)
+        return noise
+
+    # add noise
+    if numpy.random.rand() < 0.9:
+        if numpy.random.randint(2, dtype=bool):
+            noise = make_noise()
+        else:
+            noise = (make_noise() + make_noise()) / 2
+        wave += noise / 10  # 手加減
+
+    # 音割れ
+    if numpy.random.rand() < 0.1:
+        th = numpy.random.uniform(0.5, 1)
+        wave = numpy.clip(wave, -th, th)
+
+    # 音量
+    if numpy.random.rand() < 0.8:
+        scale = numpy.random.uniform(0.3, 1.5)
+        wave *= scale
+        wave = numpy.clip(wave, -1, 1)
+
+    return wave.astype(numpy.float32)
+
+
 class BaseWaveDataset(Dataset):
     def __init__(
         self,
         sampling_length: int,
         min_not_silence_length: int,
+        with_mic_augment: bool,
     ):
         self.sampling_length = sampling_length
         self.min_not_silence_length = min_not_silence_length
+        self.with_mic_augment = with_mic_augment
 
     @staticmethod
     def extract_input(
@@ -54,6 +95,7 @@ class BaseWaveDataset(Dataset):
         f0_data: SamplingData,
         phoneme_data: SamplingData,
         min_not_silence_length: int,
+        with_mic_augment: bool,
     ):
         sr = wave_data.sampling_rate
         sl = sampling_length
@@ -94,6 +136,9 @@ class BaseWaveDataset(Dataset):
         f0 = numpy.squeeze(f0_array[l_offset : l_offset + l_sl])
         phoneme = numpy.argmax(phoneme_array[l_offset : l_offset + l_sl], axis=1)
 
+        if with_mic_augment:
+            wave = mic_augment(wave, sampling_rate=24000)  # TODO: magic number
+
         return dict(
             wave=wave,
             f0=f0,
@@ -114,6 +159,7 @@ class BaseWaveDataset(Dataset):
             f0_data=f0_data,
             phoneme_data=phoneme_data,
             min_not_silence_length=self.min_not_silence_length,
+            with_mic_augment=self.with_mic_augment,
         )
 
 
@@ -123,10 +169,12 @@ class WavesDataset(BaseWaveDataset):
         inputs: List[Union[Input, LazyInput]],
         sampling_length: int,
         min_not_silence_length: int,
+        with_mic_augment: bool,
     ):
         super().__init__(
             sampling_length=sampling_length,
             min_not_silence_length=min_not_silence_length,
+            with_mic_augment=with_mic_augment,
         )
         self.inputs = inputs
 
@@ -197,7 +245,7 @@ def create_dataset(config: DatasetConfig):
     trains = fn_list[num_test:][:num_train]
     tests = fn_list[:num_test]
 
-    def make_dataset(fns, for_evaluate=False):
+    def make_dataset(fns, is_train=False, for_evaluate=False):
         inputs = [
             LazyInput(
                 path_wave=wave_paths[fn],
@@ -212,6 +260,7 @@ def create_dataset(config: DatasetConfig):
             inputs=inputs,
             sampling_length=config.sampling_length,
             min_not_silence_length=config.min_not_silence_length,
+            with_mic_augment=config.with_mic_augment if is_train else False,
         )
 
         dataset = SpeakerWavesDataset(
@@ -228,7 +277,7 @@ def create_dataset(config: DatasetConfig):
         create_validation_dataset(config) if config.num_valid is not None else None
     )
     return dict(
-        train=make_dataset(trains),
+        train=make_dataset(trains, is_train=True),
         test=make_dataset(tests),
         eval=make_dataset(tests, for_evaluate=True),
         valid=valid_dataset,
@@ -271,6 +320,7 @@ def create_validation_dataset(config: DatasetConfig):
         inputs=inputs,
         sampling_length=config.sampling_length,
         min_not_silence_length=config.min_not_silence_length,
+        with_mic_augment=False,
     )
 
     dataset = ConcatDataset([dataset] * config.valid_times)

@@ -49,7 +49,7 @@ class Generator(object):
             else:
                 features = self.predictor(wave, return_with_splited=True)
                 f0_feature = features["f0"].transpose(1, 2)
-                f0_feature = self.f0_network(x=f0_feature, speaker=None).unsqueeze(1)
+                f0_feature = self.f0_network(x=f0_feature).unsqueeze(1)
                 output = torch.cat(
                     [features["voiced"], f0_feature, features["phoneme"]], dim=1
                 )

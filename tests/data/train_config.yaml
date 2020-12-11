@@ -7,6 +7,7 @@ dataset:
   speaker_size: 100
   sampling_length: 2400
   min_not_silence_length: 1200
+  with_mic_augment: true
   evaluate_times: 10
   num_test: 50
 

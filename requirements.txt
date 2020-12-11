@@ -1,3 +1,4 @@
+colorednoise==1.1.1
 more_itertools
 numpy
 torch==1.5.0
@@ -9,6 +10,6 @@ tensorboardX
 tensorboard
 six>=1.13.0  # for wandb
 wandb==0.10.9
-git+https://github.com/Hiroshiba/pytorch-trainer@1.2.0
-git+https://github.com/Hiroshiba/acoustic_feature_extractor@7beb1ceb7244a997865778c3a7c730e5fc0cbe02
+git+https://github.com/Hiroshiba/pytorch-trainer@1.3.1
+git+https://github.com/Hiroshiba/acoustic_feature_extractor@7cab860d9623c34a6ce818ff87c0c14a9ed60231
 git+https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer@a170e3dac6443763961d0cb7a16294e4f45f93e4

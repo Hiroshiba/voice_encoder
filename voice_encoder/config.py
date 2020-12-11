@@ -17,6 +17,7 @@ class DatasetConfig:
     speaker_size: int
     sampling_length: int
     min_not_silence_length: int
+    with_mic_augment: bool
     evaluate_times: int
     num_test: int
     num_train: Optional[int] = None
@@ -94,3 +95,6 @@ def backward_compatible(d: Dict[str, Any]):
 
     if "phoneme_subscale_size" not in d["network"]:
         d["network"]["phoneme_subscale_size"] = None
+
+    if "with_mic_augment" not in d["dataset"]:
+        d["dataset"]["with_mic_augment"] = False
