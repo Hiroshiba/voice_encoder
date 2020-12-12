@@ -52,6 +52,7 @@ class ModelConfig:
 @dataclass
 class TrainConfig:
     batch_size: int
+    eval_batch_size: Optional[int]
     log_iteration: int
     snapshot_iteration: int
     stop_iteration: int
@@ -98,3 +99,6 @@ def backward_compatible(d: Dict[str, Any]):
 
     if "with_mic_augment" not in d["dataset"]:
         d["dataset"]["with_mic_augment"] = False
+
+    if "eval_batch_size" not in d["train"]:
+        d["train"]["eval_batch_size"] = None

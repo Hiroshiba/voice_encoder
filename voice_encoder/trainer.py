@@ -42,10 +42,14 @@ def create_trainer(
     model.to(device)
 
     # dataset
-    def _create_iterator(dataset, for_train: bool):
+    def _create_iterator(dataset, for_train: bool, for_eval: bool):
+        if not for_eval or config.train.eval_batch_size is None:
+            batchsize = config.train.batch_size
+        else:
+            batchsize = config.train.eval_batch_size
         return MultiprocessIterator(
             dataset,
-            config.train.batch_size,
+            batchsize,
             repeat=for_train,
             shuffle=for_train,
             n_processes=config.train.num_processes,
@@ -53,12 +57,12 @@ def create_trainer(
         )
 
     datasets = create_dataset(config.dataset)
-    train_iter = _create_iterator(datasets["train"], for_train=True)
-    test_iter = _create_iterator(datasets["test"], for_train=False)
+    train_iter = _create_iterator(datasets["train"], for_train=True, for_eval=False)
+    test_iter = _create_iterator(datasets["test"], for_train=False, for_eval=False)
 
     valid_iter = None
     if datasets["valid"] is not None:
-        valid_iter = _create_iterator(datasets["valid"], for_train=False)
+        valid_iter = _create_iterator(datasets["valid"], for_train=False, for_eval=True)
 
     warnings.simplefilter("error", MultiprocessIterator.TimeoutWarning)
 

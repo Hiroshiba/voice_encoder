@@ -46,6 +46,7 @@ def check_dataset(config_yaml_path: Path):
 
     _check(datasets["train"], desc="train", num_processes=num_processes)
     _check(datasets["test"], desc="test", num_processes=num_processes)
+    _check(datasets["eval"], desc="eval", num_processes=num_processes)
 
     if datasets["valid"] is not None:
         _check(datasets["valid"], desc="valid", num_processes=num_processes)
