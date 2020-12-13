@@ -1,6 +1,7 @@
 import dataclasses
 import warnings
 from copy import copy
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict
 
@@ -19,6 +20,7 @@ from voice_encoder.dataset import create_dataset
 from voice_encoder.model import Model, Networks, create_network
 from voice_encoder.utility.pytorch_utility import init_orthogonal
 from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
+from voice_encoder.utility.trainer_utility import create_iterator
 
 
 def create_trainer(
@@ -42,19 +44,13 @@ def create_trainer(
     model.to(device)
 
     # dataset
-    def _create_iterator(dataset, for_train: bool, for_eval: bool):
-        if not for_eval or config.train.eval_batch_size is None:
-            batchsize = config.train.batch_size
-        else:
-            batchsize = config.train.eval_batch_size
-        return MultiprocessIterator(
-            dataset,
-            batchsize,
-            repeat=for_train,
-            shuffle=for_train,
-            n_processes=config.train.num_processes,
-            dataset_timeout=60 * 15,
-        )
+    _create_iterator = partial(
+        create_iterator,
+        batch_size=config.train.batch_size,
+        eval_batch_size=config.train.eval_batch_size,
+        num_processes=config.train.num_processes,
+        use_multithread=config.train.use_multithread,
+    )
 
     datasets = create_dataset(config.dataset)
     train_iter = _create_iterator(datasets["train"], for_train=True, for_eval=False)
