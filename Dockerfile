@@ -1,4 +1,4 @@
-FROM hiroshiba/hiho-deep-docker-base:pytorch1.5.0-cuda9.0
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && \

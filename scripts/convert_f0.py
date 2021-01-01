@@ -29,13 +29,17 @@ def convert_f0(
 
     for p in tqdm(paths, desc="convert_f0"):
         data = SamplingData.load(p)
-        assert data.array.shape[1] == (
-            config.network.voiced_feature_size + 1 + config.network.phoneme_feature_size
-        )
 
-        data.array[:, config.network.voiced_feature_size] += (
-            target_stat["mean"] - input_stat["mean"]
-        )
+        if data.array.shape[1] == (
+            config.network.voiced_feature_size + 1 + config.network.phoneme_feature_size
+        ):
+            f0_index = config.network.voiced_feature_size
+        elif data.array.shape[1] == (1 + 1 + 40):
+            f0_index = 1
+        else:
+            raise ValueError(data.array.shape[1])
+
+        data.array[:, f0_index] += target_stat["mean"] - input_stat["mean"]
         data.save(output_dir / (p.stem + ".npy"))
 
 

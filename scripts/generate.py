@@ -42,7 +42,9 @@ def generate(
     model_iteration: Optional[int],
     model_config: Optional[Path],
     output_dir: Path,
+    to_voiced_scaler: bool,
     to_f0_scaler: bool,
+    to_phoneme_onehot: bool,
     batch_size: Optional[int],
     num_test: int,
     target_glob: Optional[str],
@@ -63,6 +65,15 @@ def generate(
             iteration=model_iteration,
             prefix="predictor_",
         ),
+        voiced_network=(
+            None
+            if not to_voiced_scaler
+            else _get_model_path(
+                model_dir=model_dir,
+                iteration=model_iteration,
+                prefix="voiced_network_",
+            )
+        ),
         f0_network=(
             None
             if not to_f0_scaler
@@ -70,6 +81,15 @@ def generate(
                 model_dir=model_dir,
                 iteration=model_iteration,
                 prefix="f0_network_",
+            )
+        ),
+        phoneme_network=(
+            None
+            if not to_phoneme_onehot
+            else _get_model_path(
+                model_dir=model_dir,
+                iteration=model_iteration,
+                prefix="phoneme_network_",
             )
         ),
         use_gpu=use_gpu,
@@ -100,7 +120,10 @@ def generate(
 
         tensors = [torch.from_numpy(array.astype(numpy.float32)) for array in arrays]
         output = generator.generate(
-            wave=concat_examples(tensors), to_f0_scaler=to_f0_scaler
+            wave=concat_examples(tensors),
+            to_voiced_scaler=to_voiced_scaler,
+            to_f0_scaler=to_f0_scaler,
+            to_phoneme_onehot=to_phoneme_onehot,
         )
 
         for feature, p, w, l in zip(output, wps, waves, pad_lengths):
@@ -115,7 +138,9 @@ if __name__ == "__main__":
     parser.add_argument("--model_iteration", type=int)
     parser.add_argument("--model_config", type=Path)
     parser.add_argument("--output_dir", required=True, type=Path)
+    parser.add_argument("--to_voiced_scaler", action="store_true")
     parser.add_argument("--to_f0_scaler", action="store_true")
+    parser.add_argument("--to_phoneme_onehot", action="store_true")
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--num_test", type=int, default=10)
     parser.add_argument("--target_glob")
