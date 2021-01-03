@@ -8,7 +8,7 @@ from typing import Any, Dict
 import torch
 import yaml
 from pytorch_trainer.iterators import MultiprocessIterator
-from pytorch_trainer.training import Trainer, extensions, triggers
+from pytorch_trainer.training import Trainer, extensions
 from pytorch_trainer.training.updaters import StandardUpdater
 from ranger import Ranger
 from tensorboardX import SummaryWriter
@@ -20,7 +20,7 @@ from voice_encoder.dataset import create_dataset
 from voice_encoder.model import Model, Networks, create_network
 from voice_encoder.utility.pytorch_utility import init_orthogonal
 from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
-from voice_encoder.utility.trainer_utility import create_iterator
+from voice_encoder.utility.trainer_utility import LowValueTrigger, create_iterator
 
 
 def create_trainer(
@@ -110,7 +110,7 @@ def create_trainer(
         )
         trainer.extend(
             ext,
-            trigger=triggers.MaxValueTrigger(
+            trigger=LowValueTrigger(
                 (
                     "valid/main/phoneme_accuracy"
                     if valid_iter is not None
