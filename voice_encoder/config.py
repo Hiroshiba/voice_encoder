@@ -54,7 +54,7 @@ class TrainConfig:
     batch_size: int
     eval_batch_size: Optional[int]
     log_iteration: int
-    snapshot_iteration: int
+    eval_iteration: int
     stop_iteration: int
     num_processes: Optional[int] = None
     use_multithread: bool = False
@@ -103,3 +103,6 @@ def backward_compatible(d: Dict[str, Any]):
 
     if "eval_batch_size" not in d["train"]:
         d["train"]["eval_batch_size"] = None
+
+    if "snapshot_iteration" in d["train"]:
+        d["train"]["eval_iteration"] = d["train"].pop("snapshot_iteration")

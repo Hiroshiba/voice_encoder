@@ -86,7 +86,7 @@ def create_trainer(
 
     # trainer
     trigger_log = (config.train.log_iteration, "iteration")
-    trigger_snapshot = (config.train.snapshot_iteration, "iteration")
+    trigger_eval = (config.train.eval_iteration, "iteration")
     trigger_stop = (
         (config.train.stop_iteration, "iteration")
         if config.train.stop_iteration is not None
@@ -100,13 +100,19 @@ def create_trainer(
 
     if valid_iter is not None:
         ext = extensions.Evaluator(valid_iter, model, device=device)
-        trainer.extend(ext, name="valid", trigger=trigger_snapshot)
+        trainer.extend(ext, name="valid", trigger=trigger_eval)
 
+    if config.train.stop_iteration is not None:
+        saving_model_num = int(
+            config.train.stop_iteration / config.train.eval_iteration / 10
+        )
+    else:
+        saving_model_num = 10
     for field in dataclasses.fields(Networks):
         ext = extensions.snapshot_object(
             getattr(networks, field.name),
             filename=field.name + "_{.updater.iteration}.pth",
-            n_retains=5,
+            n_retains=saving_model_num,
         )
         trainer.extend(
             ext,
@@ -116,7 +122,7 @@ def create_trainer(
                     if valid_iter is not None
                     else "test/main/phoneme_accuracy"
                 ),
-                trigger=trigger_snapshot,
+                trigger=trigger_eval,
             ),
         )
 
@@ -150,6 +156,6 @@ def create_trainer(
         n_retains=1,
         autoload=True,
     )
-    trainer.extend(ext, trigger=trigger_snapshot)
+    trainer.extend(ext, trigger=trigger_eval)
 
     return trainer

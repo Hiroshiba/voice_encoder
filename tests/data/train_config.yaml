@@ -29,7 +29,7 @@ model:
 train:
   batch_size: 100
   log_iteration: 1000
-  snapshot_iteration: 100000
+  eval_iteration: 100000
   stop_iteration: 100000
   optimizer:
     name: "ranger"
