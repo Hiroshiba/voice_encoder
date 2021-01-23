@@ -12,14 +12,22 @@ class Mish(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, input_size: int, output_size: int, scale: int):
+    def __init__(
+        self,
+        input_size: int,
+        output_size: int,
+        kernel_size: int,
+        padding_size: int,
+        scale: int,
+    ):
         super().__init__()
 
         self.conv = nn.utils.weight_norm(
             nn.Conv1d(
                 in_channels=input_size,
                 out_channels=output_size,
-                kernel_size=scale,
+                kernel_size=kernel_size,
+                padding=padding_size,
                 stride=scale,
             )
         )
@@ -34,6 +42,8 @@ class Predictor(nn.Module):
         self,
         hidden_size_list: Sequence[int],
         scale_list: Sequence[int],
+        kernel_size_list: Sequence[int],
+        padding_size_list: Sequence[int],
         voiced_feature_size: int,
         f0_feature_size: int,
         phoneme_feature_size: int,
@@ -54,6 +64,8 @@ class Predictor(nn.Module):
                 EncoderBlock(
                     input_size=hidden_size_list[i - 1] if i > 0 else 1,
                     output_size=hidden_size_list[i],
+                    kernel_size=kernel_size_list[i],
+                    padding_size=padding_size_list[i],
                     scale=scale_list[i],
                 )
                 for i in range(layer_num)
@@ -99,6 +111,8 @@ def create_predictor(config: NetworkConfig):
     return Predictor(
         hidden_size_list=config.hidden_size_list,
         scale_list=config.scale_list,
+        kernel_size_list=config.kernel_size_list,
+        padding_size_list=config.padding_size_list,
         voiced_feature_size=config.voiced_feature_size,
         f0_feature_size=config.f0_feature_size,
         phoneme_feature_size=config.phoneme_feature_size,

@@ -34,6 +34,8 @@ class DatasetConfig:
 class NetworkConfig:
     hidden_size_list: List[int]
     scale_list: List[int]
+    kernel_size_list: List[int]
+    padding_size_list: List[int]
     voiced_feature_size: int
     f0_feature_size: int
     phoneme_feature_size: int
@@ -106,3 +108,9 @@ def backward_compatible(d: Dict[str, Any]):
 
     if "snapshot_iteration" in d["train"]:
         d["train"]["eval_iteration"] = d["train"].pop("snapshot_iteration")
+
+    if "kernel_size_list" not in d["network"]:
+        d["network"]["kernel_size_list"] = d["network"]["scale_list"]
+
+    if "padding_size_list" not in d["network"]:
+        d["network"]["padding_size_list"] = [0 for _ in d["network"]["scale_list"]]

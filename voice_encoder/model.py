@@ -78,7 +78,7 @@ class Model(nn.Module):
         self.phoneme_network = networks.phoneme_network
         self.speaker_network = networks.speaker_network
 
-    def __call__(
+    def forward(
         self,
         wave: Tensor,
         f0: Tensor,
