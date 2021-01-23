@@ -100,6 +100,8 @@ class BaseWaveDataset(Dataset):
         sr = wave_data.sampling_rate
         sl = sampling_length
 
+        assert len(wave_data.wave) >= sl, f"{len(wave_data.wave)} >= {sl}"
+
         l_rate = max(f0_data.rate, phoneme_data.rate)
 
         assert sr % l_rate == 0

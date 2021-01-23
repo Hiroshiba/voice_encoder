@@ -3,6 +3,7 @@ import multiprocessing
 import warnings
 from functools import partial
 from pathlib import Path
+from time import time
 from typing import Optional
 
 import yaml
@@ -23,12 +24,17 @@ def _wrapper(index, dataset):
 def _check(dataset, desc: str, num_processes: Optional[int]):
     wrapper = partial(_wrapper, dataset=dataset)
 
+    start_time = time()
+
     with multiprocessing.Pool(processes=num_processes) as pool:
-        it = pool.imap_unordered(wrapper, range(len(dataset)), chunksize=2 ** 10)
+        it = pool.imap(wrapper, range(len(dataset)), chunksize=len(dataset) // 16)
         for i, error in tqdm(it, desc=desc, total=len(dataset)):
             if error is not None:
                 print(f"error at {i}")
                 breakpoint()
+
+    span_time = time() - start_time
+    print(f"len:{len(dataset)} span_time:{span_time}")
 
 
 def check_dataset(config_yaml_path: Path):
