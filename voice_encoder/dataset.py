@@ -137,7 +137,7 @@ class BaseWaveDataset(Dataset):
         phoneme = numpy.argmax(phoneme_array[l_offset : l_offset + l_sl], axis=1)
 
         if with_mic_augment:
-            wave = mic_augment(wave, sampling_rate=24000)  # TODO: magic number
+            wave = mic_augment(wave, sampling_rate=sr)
 
         return dict(
             wave=wave,
