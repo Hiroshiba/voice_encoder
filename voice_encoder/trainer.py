@@ -20,7 +20,7 @@ from voice_encoder.dataset import create_dataset
 from voice_encoder.model import Model, Networks, create_network
 from voice_encoder.utility.pytorch_utility import init_orthogonal
 from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
-from voice_encoder.utility.trainer_utility import LowValueTrigger, create_iterator
+from voice_encoder.utility.trainer_utility import HighValueTrigger, create_iterator
 
 
 def create_trainer(
@@ -116,7 +116,7 @@ def create_trainer(
         )
         trainer.extend(
             ext,
-            trigger=LowValueTrigger(
+            trigger=HighValueTrigger(
                 (
                     "valid/main/phoneme_accuracy"
                     if valid_iter is not None
