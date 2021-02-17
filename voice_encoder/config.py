@@ -36,6 +36,10 @@ class NetworkConfig:
     scale_list: List[int]
     kernel_size_list: List[int]
     padding_size_list: List[int]
+    encoder_type: Optional[str]
+    encoder_hidden_size: int
+    encoder_kernel_size: int
+    encoder_layer_num: int
     voiced_feature_size: int
     f0_feature_size: int
     phoneme_feature_size: int
@@ -58,9 +62,10 @@ class TrainConfig:
     log_iteration: int
     eval_iteration: int
     stop_iteration: int
+    optimizer: Dict[str, Any]
     num_processes: Optional[int] = None
+    use_amp: bool = False
     use_multithread: bool = False
-    optimizer: Dict[str, Any] = field(default_factory=dict(name="Adam"))
 
 
 @dataclass
@@ -114,3 +119,9 @@ def backward_compatible(d: Dict[str, Any]):
 
     if "padding_size_list" not in d["network"]:
         d["network"]["padding_size_list"] = [0 for _ in d["network"]["scale_list"]]
+
+    if "encoder_type" not in d["network"]:
+        d["network"]["encoder_type"] = None
+        d["network"]["encoder_hidden_size"] = 0
+        d["network"]["encoder_kernel_size"] = 0
+        d["network"]["encoder_layer_num"] = 0

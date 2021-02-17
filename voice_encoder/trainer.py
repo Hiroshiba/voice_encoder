@@ -18,7 +18,7 @@ from torch.optim.optimizer import Optimizer
 from voice_encoder.config import Config
 from voice_encoder.dataset import create_dataset
 from voice_encoder.model import Model, Networks, create_network
-from voice_encoder.utility.pytorch_utility import init_orthogonal
+from voice_encoder.utility.pytorch_utility import AmpUpdater, init_orthogonal
 from voice_encoder.utility.trainer_extension import TensorboardReport, WandbReport
 from voice_encoder.utility.trainer_utility import HighValueTrigger, create_iterator
 
@@ -77,12 +77,20 @@ def create_trainer(
         raise ValueError(n)
 
     # updater
-    updater = StandardUpdater(
-        iterator=train_iter,
-        optimizer=optimizer,
-        model=model,
-        device=device,
-    )
+    if not config.train.use_amp:
+        updater = StandardUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
+    else:
+        updater = AmpUpdater(
+            iterator=train_iter,
+            optimizer=optimizer,
+            model=model,
+            device=device,
+        )
 
     # trainer
     trigger_log = (config.train.log_iteration, "iteration")

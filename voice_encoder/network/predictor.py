@@ -1,9 +1,10 @@
-from typing import Sequence
+from typing import Optional, Sequence
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 from voice_encoder.config import NetworkConfig
+from voice_encoder.network.encoder import EncoderType, create_encoder
 
 
 class Mish(nn.Module):
@@ -44,6 +45,10 @@ class Predictor(nn.Module):
         scale_list: Sequence[int],
         kernel_size_list: Sequence[int],
         padding_size_list: Sequence[int],
+        encoder_type: Optional[EncoderType],
+        encoder_hidden_size: int,
+        encoder_kernel_size: int,
+        encoder_layer_num: int,
         voiced_feature_size: int,
         f0_feature_size: int,
         phoneme_feature_size: int,
@@ -53,9 +58,6 @@ class Predictor(nn.Module):
         self.voiced_feature_size = voiced_feature_size
         self.f0_feature_size = f0_feature_size
         self.phoneme_feature_size = phoneme_feature_size
-
-        layer_num = len(hidden_size_list)
-        assert len(scale_list) == layer_num
 
         feature_size = voiced_feature_size + f0_feature_size + phoneme_feature_size
 
@@ -68,17 +70,36 @@ class Predictor(nn.Module):
                     padding_size=padding_size_list[i],
                     scale=scale_list[i],
                 )
-                for i in range(layer_num)
+                for i in range(len(hidden_size_list))
             ]
         )
+
+        last_hidden_size = hidden_size_list[-1]
+        if encoder_type is None:
+            self.encoder = None
+        else:
+            self.encoder = create_encoder(
+                type=encoder_type,
+                input_size=last_hidden_size,
+                hidden_size=encoder_hidden_size,
+                kernel_size=encoder_kernel_size,
+                layer_num=encoder_layer_num,
+            )
+            last_hidden_size = self.encoder.output_hidden_size
+
         self.conv = nn.Conv1d(
-            in_channels=hidden_size_list[-1],
+            in_channels=last_hidden_size,
             out_channels=feature_size,
             kernel_size=1,
         )
 
     def forward(self, x: Tensor, return_with_splited: bool = False):
-        feature = self.conv(self.blocks(x.unsqueeze(1)))
+        h = x.unsqueeze(1)
+
+        h = self.blocks(h)
+        if self.encoder is not None:
+            h = self.encoder(h)
+        feature = self.conv(h)
 
         voiced_feature, f0_feature, phoneme_feature = torch.split(
             feature,
@@ -109,6 +130,12 @@ class Predictor(nn.Module):
 
 def create_predictor(config: NetworkConfig):
     return Predictor(
+        encoder_type=(
+            None if config.encoder_type is None else EncoderType(config.encoder_type)
+        ),
+        encoder_hidden_size=config.encoder_hidden_size,
+        encoder_kernel_size=config.encoder_kernel_size,
+        encoder_layer_num=config.encoder_layer_num,
         hidden_size_list=config.hidden_size_list,
         scale_list=config.scale_list,
         kernel_size_list=config.kernel_size_list,
