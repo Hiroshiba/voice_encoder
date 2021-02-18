@@ -9,7 +9,7 @@ class F0Network(nn.Module):
         self.linear = nn.Linear(input_size, 1)
 
     def forward(self, x: Tensor):
-        return self.linear(x).squeeze()
+        return self.linear(x).squeeze(2)
 
 
 def create_f0_network(config: NetworkConfig):
