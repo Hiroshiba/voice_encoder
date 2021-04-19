@@ -19,7 +19,7 @@ from tests.utility import get_data_directory
 os.environ["WANDB_MODE"] = "dryrun"
 
 
-@pytest.fixture(params=["base_config.yaml", "train_config.yaml"])
+@pytest.fixture(params=["train_config.yaml"])
 def config_path(request):
     return get_data_directory().joinpath(request.param)
 
@@ -107,8 +107,7 @@ def generate_dataset(
     json.dump(speaker_dict, dataset_directory.joinpath("speaker_dict.json").open("w"))
 
 
-@pytest.mark.parametrize("with_valid", [False, True])
-def test_train(config: Dict[str, Any], dataset_directory: Path, with_valid: bool):
+def test_train(config: Dict[str, Any], dataset_directory: Path):
     generate_dataset(
         dataset_directory=dataset_directory,
         data_num=100,
@@ -126,19 +125,16 @@ def test_train(config: Dict[str, Any], dataset_directory: Path, with_valid: bool
         "speaker_dict.json"
     )
 
-    if with_valid:
-        config["dataset"]["valid_wave_glob"] = str(
-            dataset_directory.joinpath("wave/*.wav")
-        )
-        config["dataset"]["valid_silence_glob"] = str(
-            dataset_directory.joinpath("silence/*.npy")
-        )
-        config["dataset"]["valid_f0_glob"] = str(dataset_directory.joinpath("f0/*.npy"))
-        config["dataset"]["valid_phoneme_glob"] = str(
-            dataset_directory.joinpath("phoneme/*.npy")
-        )
-        config["dataset"]["valid_times"] = 10
-        config["dataset"]["num_valid"] = 10
+    config["dataset"]["valid_wave_glob"] = str(dataset_directory.joinpath("wave/*.wav"))
+    config["dataset"]["valid_silence_glob"] = str(
+        dataset_directory.joinpath("silence/*.npy")
+    )
+    config["dataset"]["valid_f0_glob"] = str(dataset_directory.joinpath("f0/*.npy"))
+    config["dataset"]["valid_phoneme_glob"] = str(
+        dataset_directory.joinpath("phoneme/*.npy")
+    )
+    config["dataset"]["valid_times"] = 10
+    config["dataset"]["num_valid"] = 10
 
     config["train"]["batch_size"] = 10
     config["train"]["log_iteration"] = 100

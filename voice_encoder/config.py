@@ -18,6 +18,8 @@ class DatasetConfig:
     sampling_length: int
     min_not_silence_length: int
     with_mic_augment: bool
+    time_mask_max_second: float
+    time_mask_num: int
     evaluate_times: int
     num_test: int
     num_train: Optional[int] = None
@@ -125,3 +127,8 @@ def backward_compatible(d: Dict[str, Any]):
         d["network"]["encoder_hidden_size"] = 0
         d["network"]["encoder_kernel_size"] = 0
         d["network"]["encoder_layer_num"] = 0
+
+    if "time_mask_max_second" not in d["dataset"]:
+        d["dataset"]["time_mask_max_second"] = 0
+    if "time_mask_num" not in d["dataset"]:
+        d["dataset"]["time_mask_num"] = 0

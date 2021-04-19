@@ -61,10 +61,12 @@ def create_network(config: NetworkConfig):
     )
 
 
-def accuracy(output: Tensor, target: Tensor):
+def accuracy(output: Tensor, target: Tensor, mask: Optional[Tensor] = None):
     with torch.no_grad():
         indexes = torch.argmax(output, dim=1)
         correct = torch.eq(indexes, target).view(-1)
+        if mask is not None:
+            correct = correct[mask]
         return correct.float().mean()
 
 
@@ -83,10 +85,12 @@ class Model(nn.Module):
         wave: Tensor,
         f0: Tensor,
         phoneme: Tensor,
+        padded: Tensor,
         speaker: Optional[Tensor] = None,
     ):
         batch_size = wave.shape[0]
         length = f0.shape[1]
+        mask = ~padded
 
         voiced = f0 != 0
         long_voiced = voiced.long()
@@ -107,11 +111,17 @@ class Model(nn.Module):
         else:
             phoneme_output = self.phoneme_network(phoneme_feature)
 
-        voiced_loss = F.cross_entropy(voiced_output, long_voiced.reshape(-1))
-        phoneme_loss = F.cross_entropy(phoneme_output, phoneme.reshape(-1))
+        voiced_loss = F.cross_entropy(
+            voiced_output, long_voiced.reshape(-1), reduction="none"
+        )[mask.reshape(-1)].mean()
+        phoneme_loss = F.cross_entropy(
+            phoneme_output, phoneme.reshape(-1), reduction="none"
+        )[mask.reshape(-1)].mean()
 
         f0_output = self.f0_network(x=f0_feature)
-        f0_loss = F.l1_loss(f0_output[voiced], f0[voiced])
+        f0_loss = F.l1_loss(f0_output[voiced], f0[voiced], reduction="none")[
+            mask[voiced]
+        ].mean()
 
         if speaker is not None:
             expanded_speaker = speaker.unsqueeze(1).expand(batch_size, length)
@@ -139,8 +149,12 @@ class Model(nn.Module):
             f0_loss=f0_loss,
             phoneme_loss=phoneme_loss,
             speaker_loss=speaker_loss,
-            voiced_accuracy=accuracy(voiced_output, long_voiced.reshape(-1)),
-            phoneme_accuracy=accuracy(phoneme_output, phoneme.reshape(-1)),
+            voiced_accuracy=accuracy(
+                voiced_output, long_voiced.reshape(-1), mask=mask.reshape(-1)
+            ),
+            phoneme_accuracy=accuracy(
+                phoneme_output, phoneme.reshape(-1), mask=mask.reshape(-1)
+            ),
             speaker_accuracy=speaker_accuracy,
         )
         if not self.training:

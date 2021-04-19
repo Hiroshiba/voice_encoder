@@ -82,10 +82,14 @@ class BaseWaveDataset(Dataset):
         sampling_length: int,
         min_not_silence_length: int,
         with_mic_augment: bool,
+        time_mask_max_second: float,
+        time_mask_num: int,
     ):
         self.sampling_length = sampling_length
         self.min_not_silence_length = min_not_silence_length
         self.with_mic_augment = with_mic_augment
+        self.time_mask_max_second = time_mask_max_second
+        self.time_mask_num = time_mask_num
 
     @staticmethod
     def extract_input(
@@ -96,16 +100,18 @@ class BaseWaveDataset(Dataset):
         phoneme_data: SamplingData,
         min_not_silence_length: int,
         with_mic_augment: bool,
+        time_mask_max_second: float,
+        time_mask_num: int,
     ):
-        sr = wave_data.sampling_rate
+        rate = wave_data.sampling_rate
         sl = sampling_length
-
-        assert len(wave_data.wave) >= sl, f"{len(wave_data.wave)} >= {sl}"
 
         l_rate = max(f0_data.rate, phoneme_data.rate)
 
-        assert sr % l_rate == 0
-        l_scale = int(sr // l_rate)
+        assert rate % l_rate == 0
+        l_scale = int(rate // l_rate)
+
+        assert sl % l_scale == 0
 
         local = SamplingData.collect(
             [f0_data, phoneme_data], rate=l_rate, mode="min", error_time_length=0.015
@@ -113,13 +119,19 @@ class BaseWaveDataset(Dataset):
         f0_array = local[:, 0]
         phoneme_array = local[:, 1:]
 
-        length = len(local) * l_scale
-        assert (
-            abs(length - len(wave_data.wave)) < l_scale * 4
-        ), f"{abs(length - len(wave_data.wave))} {l_scale}"
+        assert numpy.abs(len(local) * l_scale - len(wave_data.wave)) < l_scale * 4
+
+        length = min(len(local) * l_scale, len(wave_data.wave) // l_scale * l_scale)
+
+        if sl > length:
+            pad = sl - length
+            sl = length
+        else:
+            pad = 0
 
         l_length = length // l_scale
         l_sl = sl // l_scale
+        l_pad = pad // l_scale
 
         for _ in range(10000):
             if l_length > l_sl:
@@ -128,7 +140,9 @@ class BaseWaveDataset(Dataset):
                 l_offset = 0
             offset = l_offset * l_scale
 
-            silence = numpy.squeeze(silence_data.resample(sr, index=offset, length=sl))
+            silence = numpy.squeeze(
+                silence_data.resample(rate, index=offset, length=sl)
+            )
             if (~silence).sum() >= min_not_silence_length:
                 break
         else:
@@ -137,14 +151,34 @@ class BaseWaveDataset(Dataset):
         wave = wave_data.wave[offset : offset + sl]
         f0 = numpy.squeeze(f0_array[l_offset : l_offset + l_sl])
         phoneme = numpy.argmax(phoneme_array[l_offset : l_offset + l_sl], axis=1)
+        padded = numpy.zeros_like(f0, dtype=bool)
+
+        if l_pad > 0:
+            l_pre = numpy.random.randint(l_pad + 1)
+            l_post = l_pad - l_pre
+            f0 = numpy.pad(f0, [l_pre, l_post])
+            phoneme = numpy.pad(phoneme, [l_pre, l_post])
+            padded = numpy.pad(padded, [l_pre, l_post], constant_values=True)
+
+            pre, post = int(l_pre * l_scale), int(l_post * l_scale)
+            wave = numpy.pad(wave, [pre, post])
 
         if with_mic_augment:
-            wave = mic_augment(wave, sampling_rate=sr)
+            wave = mic_augment(wave, sampling_rate=rate)
+
+        if time_mask_max_second > 0 and time_mask_num > 0:
+            for _ in range(time_mask_num):
+                mask_length = numpy.random.randint(
+                    int(wave_data.sampling_rate * time_mask_max_second)
+                )
+                mask_offset = numpy.random.randint(len(wave) - mask_length + 1)
+                wave[mask_offset : mask_offset + mask_length] = 0
 
         return dict(
             wave=wave,
             f0=f0,
             phoneme=phoneme,
+            padded=padded,
         )
 
     def make_input(
@@ -162,6 +196,8 @@ class BaseWaveDataset(Dataset):
             phoneme_data=phoneme_data,
             min_not_silence_length=self.min_not_silence_length,
             with_mic_augment=self.with_mic_augment,
+            time_mask_max_second=self.time_mask_max_second,
+            time_mask_num=self.time_mask_num,
         )
 
 
@@ -172,11 +208,15 @@ class WavesDataset(BaseWaveDataset):
         sampling_length: int,
         min_not_silence_length: int,
         with_mic_augment: bool,
+        time_mask_max_second: float,
+        time_mask_num: int,
     ):
         super().__init__(
             sampling_length=sampling_length,
             min_not_silence_length=min_not_silence_length,
             with_mic_augment=with_mic_augment,
+            time_mask_max_second=time_mask_max_second,
+            time_mask_num=time_mask_num,
         )
         self.inputs = inputs
 
@@ -263,6 +303,8 @@ def create_dataset(config: DatasetConfig):
             sampling_length=config.sampling_length,
             min_not_silence_length=config.min_not_silence_length,
             with_mic_augment=config.with_mic_augment if is_train else False,
+            time_mask_max_second=(config.time_mask_max_second if is_train else 0),
+            time_mask_num=(config.time_mask_num if is_train else 0),
         )
 
         dataset = SpeakerWavesDataset(
@@ -323,6 +365,8 @@ def create_validation_dataset(config: DatasetConfig):
         sampling_length=config.sampling_length,
         min_not_silence_length=config.min_not_silence_length,
         with_mic_augment=False,
+        time_mask_max_second=False,
+        time_mask_num=False,
     )
 
     dataset = ConcatDataset([dataset] * config.valid_times)

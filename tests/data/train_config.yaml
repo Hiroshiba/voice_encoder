@@ -31,6 +31,7 @@ train:
   log_iteration: 1000
   eval_iteration: 100000
   stop_iteration: 100000
+  num_processes: 4
   optimizer:
     name: "ranger"
     lr: 0.001
