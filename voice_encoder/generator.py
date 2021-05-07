@@ -7,8 +7,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from voice_encoder.config import Config
-from voice_encoder.model import create_phoneme_network, create_voiced_network
 from voice_encoder.network.f0_network import F0Network, create_f0_network
+from voice_encoder.network.network import create_phoneme_network, create_voiced_network
 from voice_encoder.network.predictor import Predictor, create_predictor
 
 
