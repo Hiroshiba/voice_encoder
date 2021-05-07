@@ -27,14 +27,14 @@ class Generator(object):
         self.scale = int(numpy.prod(config.network.scale_list))
 
         if isinstance(predictor, Path):
-            state_dict = torch.load(predictor)
+            state_dict = torch.load(predictor, map_location=self.device)
             predictor = create_predictor(config.network)
             predictor.load_state_dict(state_dict)
         self.predictor = predictor.eval().to(self.device)
 
         if voiced_network is not None:
             if isinstance(voiced_network, Path):
-                state_dict = torch.load(voiced_network)
+                state_dict = torch.load(voiced_network, map_location=self.device)
                 voiced_network = create_voiced_network(config.network)
                 voiced_network.load_state_dict(state_dict)
             voiced_network = voiced_network.eval().to(self.device)
@@ -42,7 +42,7 @@ class Generator(object):
 
         if f0_network is not None:
             if isinstance(f0_network, Path):
-                state_dict = torch.load(f0_network)
+                state_dict = torch.load(f0_network, map_location=self.device)
                 f0_network = create_f0_network(config.network)
                 f0_network.load_state_dict(state_dict)
             f0_network = f0_network.eval().to(self.device)
@@ -50,7 +50,7 @@ class Generator(object):
 
         if phoneme_network is not None:
             if isinstance(phoneme_network, Path):
-                state_dict = torch.load(phoneme_network)
+                state_dict = torch.load(phoneme_network, map_location=self.device)
                 phoneme_network = create_phoneme_network(config.network)
                 phoneme_network.load_state_dict(state_dict)
             phoneme_network = phoneme_network.eval().to(self.device)
