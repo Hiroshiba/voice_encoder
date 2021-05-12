@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
+FROM pytorch/pytorch:1.8.1-cuda11.0-cudnn8-runtime
 SHELL ["/bin/bash", "-c"]
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -16,4 +16,4 @@ WORKDIR /app
 
 # install requirements
 COPY requirements.txt /app/
-RUN pip install -r <(cat requirements.txt | grep -v 'torch==1.7.0')
+RUN pip install -r <(cat requirements.txt | grep -v -x torch)

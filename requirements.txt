@@ -1,7 +1,7 @@
 colorednoise==1.1.1
 more_itertools
 numpy
-torch==1.7.0
+torch
 tqdm
 retry
 pytest
